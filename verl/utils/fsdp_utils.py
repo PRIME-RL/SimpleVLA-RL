@@ -39,6 +39,7 @@ def get_init_weight_context_manager(use_meta_tensor=True):
 # Copyright 2020-present the HuggingFace Inc. team.
 # Adapted from https://github.com/huggingface/transformers/src/transformers/trainer.py
 def get_fsdp_wrap_policy(module, config=None):
+    # TODO
     if config is None:
         config = {}
 

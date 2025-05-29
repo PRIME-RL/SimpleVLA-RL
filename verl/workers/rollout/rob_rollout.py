@@ -155,6 +155,7 @@ def env_worker(task_name, task_id, trial_id, config, input_queue, output_queue, 
     t = 0
     valid_images = []
     while t < config.num_steps_wait:
+        # TODO
         obs, _, _, _ = env.step(get_libero_dummy_action(config.model_family))
         t += 1
         
@@ -189,6 +190,7 @@ def env_worker(task_name, task_id, trial_id, config, input_queue, output_queue, 
         step_images = []
         for i in range(len(action)):
             a = action[i]
+            # TODO
             normalized_action = normalize_gripper_action(a, binarize=True)
             inverted_action = invert_gripper_action(normalized_action)
             obs, reward, done, info = env.step(inverted_action.tolist())
@@ -275,6 +277,7 @@ class RobHFRollout(BaseRollout):
     
     
     def process_input(self,inputs:list, task_descriptions:list):
+        # TODO
         
         batchdata = {"input_ids":[],"attention_mask":[],"pixel_values":[]}  
         
@@ -504,6 +507,7 @@ class RobHFRollout(BaseRollout):
             
             with param_ctx:
                 with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+                    # TODO
                     actions, response = self.module.generate_action_verl(
                         input_ids=idx,
                         pixel_values=pixel_values,
@@ -529,6 +533,7 @@ class RobHFRollout(BaseRollout):
             assert attention_mask.device.type == 'cuda'
             assert pixel_values.device.type == 'cuda'
             batch ={
+                # response is tokens, actions is continous (after FAST), attn_mask is the attention mask for non-pad tokens
                     'responses': response,
                     'input_ids': idx,
                     'attention_mask': attention_mask,
@@ -647,6 +652,7 @@ class RobHFRollout(BaseRollout):
 
         
     def _obs_to_input(self, obs):
+        # TODO
         
         if self.config.num_images_in_input > 1:
             return {

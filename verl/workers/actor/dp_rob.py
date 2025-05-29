@@ -136,6 +136,7 @@ class RobDataParallelPPOActor(BasePPOActor):
             input_ids_unpad, _ = self.process_tensor(input_ids, self.pad_token_id)
             attention_mask_unpad, _ = self.process_tensor(attention_mask, 0)
             
+            # TODO
             if self.config.vla == "openvla-oft":
                 logits = self.actor_module(input_ids=input_ids_unpad,
                                         attention_mask=attention_mask_unpad,
@@ -186,8 +187,43 @@ class RobDataParallelPPOActor(BasePPOActor):
                 
                 log_probs = log_probs.reshape((batch_size, traj_len*response_length))
                 entropy = entropy.reshape((batch_size, traj_len*response_length))
+            elif self.config.vla == "pi0fast":
+                output = self.actor_module(input_ids=input_ids_unpad,
+                                    attention_mask=attention_mask_unpad,
+                                    pixel_values=pixel_values,
+                                    use_cache=False)
+                logits = output.logits
                 
+                # Pi0Fast uses next-token prediction with shifted targets
+                # Logits predict next token, so we exclude the last input token
+                pred_logits = logits[:, :-1]  # (bsz, seq_len-1, vocab_size)
                 
+                # Targets are shifted by 1 (predict next token)
+                targets = responses[:, 1:]  # (bsz, seq_len-1)
+                pred_logits = pred_logits.div(temperature)
+                
+                log_probs_full = torch.nn.functional.log_softmax(pred_logits, dim=-1)
+                log_probs = torch.gather(log_probs_full, dim=-1, 
+                                    index=targets.unsqueeze(-1)).squeeze(-1)
+                entropy = verl_F.entropy_from_logits(pred_logits)
+                
+                # Apply loss masking (equivalent to token_loss_mask in JAX version)
+                assert 'token_loss_mask' in micro_batch and micro_batch['token_loss_mask'] is not None, \
+                    "'token_loss_mask' is missing or None in micro_batch"
+                loss_mask = micro_batch['token_loss_mask'][:, 1:]  # Shift mask too
+                loss_mask = loss_mask.reshape((batch_size * traj_len, -1))
+                log_probs = log_probs * loss_mask
+                entropy = entropy * loss_mask
+                
+                log_probs = log_probs.reshape((batch_size, traj_len,) + log_probs.shape[1:])
+                entropy = entropy.reshape((batch_size, traj_len,) + entropy.shape[1:])
+                
+                mask = self.generate_traj_mask(micro_batch['finish_step'], traj_len)
+                log_probs, entropy = self.apply_mask_with_grad_control(log_probs, entropy, mask)
+                
+                log_probs = log_probs.reshape((batch_size, traj_len * log_probs.shape[-1]))
+                entropy = entropy.reshape((batch_size, traj_len * entropy.shape[-1]))
+                    
 
             return entropy, log_probs
     
@@ -195,6 +231,7 @@ class RobDataParallelPPOActor(BasePPOActor):
        
         
         with torch.autocast(device_type='cuda', dtype=torch.bfloat16):
+            # TODO
             if self.config.vla == "openvla-oft":
                 
                 input_ids_unpad, _ = self.process_tensor(input_ids, self.pad_token_id)
@@ -273,6 +310,7 @@ class RobDataParallelPPOActor(BasePPOActor):
             input_ids_unpad, _ = self.process_tensor(input_ids, self.pad_token_id)
             attention_mask_unpad, _ = self.process_tensor(attention_mask, 0)
 
+            # TODO
             if  self.config.vla == "openvla-oft":
             
                 logits = self.actor_module(input_ids=input_ids_unpad,

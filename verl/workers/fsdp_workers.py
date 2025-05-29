@@ -157,6 +157,7 @@ class RobActorRolloutRefWorker(Worker):
 
         # note that we have to create model in fp32. Otherwise, the optimizer is in bf16, which is incorrect
         # TODO(zhangchi.usc1992): 1. support create from random initialized model. 2. Support init with FSDP directly
+        # TODO: add tokenizer
         self.tokenizer = hf_tokenizer(local_path, trust_remote_code=trust_remote_code, model = self.config.model.vla)
 
         torch_dtype = fsdp_config.get('model_dtype', None)
@@ -185,6 +186,7 @@ class RobActorRolloutRefWorker(Worker):
 
         with init_context(), warnings.catch_warnings():
             warnings.simplefilter("ignore")
+            # TODO
             if self.config.model.vla == "openvla-oft":
                 actor_module = AutoModelForVision2Seq.from_pretrained(
                                                         pretrained_model_name_or_path=local_path,
@@ -261,6 +263,7 @@ class RobActorRolloutRefWorker(Worker):
             mixed_precision = None
         
         #oft add
+        # TODO
         auto_wrap_policy = get_fsdp_wrap_policy_vla(module=actor_module, config=fsdp_config.get('wrap_policy', None), is_lora=self.config.model.get('lora_rank', 0) > 0)
         #oft add end
         
