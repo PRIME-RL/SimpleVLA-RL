@@ -45,6 +45,8 @@ from verl.utils.openvla_utils import update_auto_map , check_model_logic_mismatc
 from peft import LoraConfig, PeftModel, get_peft_model, TaskType
 import json
 
+from experiments.robot.openvla_utils import _load_dataset_stats
+
 
 logger = logging.getLogger(__file__)
 logger.setLevel(os.getenv('VERL_PPO_LOGGING_LEVEL', 'WARN'))
@@ -207,17 +209,7 @@ class RobActorRolloutRefWorker(Worker):
                 #oft add
                 actor_module.vision_backbone.set_num_images_in_input(self.config.actor.num_images_in_input)
                 
-                dataset_statistics_path = os.path.join(local_path, "dataset_statistics.json")
-                if os.path.isfile(dataset_statistics_path):
-                    with open(dataset_statistics_path, "r") as f:
-                        norm_stats = json.load(f)
-                    actor_module.norm_stats = norm_stats
-                else:
-                    print(
-                        "WARNING: No local dataset_statistics.json file found for current checkpoint.\n"
-                        "You can ignore this if you are loading the base VLA (i.e. not fine-tuned) checkpoint."
-                        "Otherwise, you may run into errors when trying to call `predict_action()` due to an absent `unnorm_key`."
-                    )
+                _load_dataset_stats(actor_module, local_path)
             elif self.config.model.vla == "openvla":
                 actor_module = AutoModelForVision2Seq.from_pretrained(
                                                     pretrained_model_name_or_path=local_path,
