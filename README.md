@@ -26,6 +26,7 @@
 </div>
 
 # 🎉News
+- **[2026-01-01]** <mark>Building upon SimpleVLA-RL, we have implemented real-world RL on long-horizon dexterous tasks and witnessed a non-trivial (~relatively 300%) performance improvement over the SFT model, along with surprising capabilities on auto-recovery. Blog coming soon.</mark>
 - **[2025-10-01]** **SimpleVLA-RL** now supports RoboTwin2.0 Benchmark. Feel free to experiment with it!
 - **[2025-09-12]** Excited to release the **SimpleVLA-RL** paper! Check it out: [Paper](https://arxiv.org/abs/2509.09674).
 - **[2025-05-27]** We release the code of **SimpleVLA-RL**.
