@@ -396,8 +396,25 @@ class DataProto:
         Returns:
             List[DataProto]: a list of DataProto after splitting
         """
+        if chunks <= 0:
+            raise ValueError(f'chunks must be positive, got {chunks}')
+
         if self.batch is not None:
-            batch_lst = self.batch.chunk(chunks=chunks, dim=0)
+            # TensorDict.chunk follows torch.chunk semantics and may return
+            # fewer than ``chunks`` pieces when the leading dimension is not
+            # evenly divisible (for example, 124 samples split 15 ways
+            # produce 14 pieces).  Non-tensor fields below use
+            # ``np.array_split`` and always produce the requested number of
+            # pieces, so split the tensor batch with matching balanced slice
+            # boundaries instead.
+            batch_size = int(self.batch.batch_size[0])
+            base_size, remainder = divmod(batch_size, chunks)
+            batch_lst = []
+            start = 0
+            for index in range(chunks):
+                size = base_size + (1 if index < remainder else 0)
+                batch_lst.append(self.batch[start:start + size])
+                start += size
         else:
             batch_lst = [None for _ in range(chunks)]
 
